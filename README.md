@@ -1,5 +1,6 @@
 # PSY6422_project
-Project exploring how reading frequency is affected by sex (male/female) and seasonal changes
+Project exploring how reading frequency is affected by sex (male/female) and seasonal changes.
+
 Project completed as part of the PSY6422 module at the University of Sheffield exploring how reading habits are affected by sex and seasons. 
 
 Full project is viewable at https://github.com/RW2398/PSY6422_project.git.
