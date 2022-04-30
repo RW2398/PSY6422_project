@@ -1,0 +1,248 @@
+---
+title: "PSY6422 Project"
+author:
+date: "23/04/2022"
+output:
+  html_document: default
+  pdf_document: default
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(here)
+library(tidyverse)
+library(gganimate)
+library(plotly)
+library(gifski)
+```
+# Project Motivation
+I found it hard to decide on a theme for my data set, partly due to the fact that most data sets I found seemed extremely complicated or difficult to access. I considered doing something neuroscience-based or related to my previous career field (Speech and Language Therapy) however ultimately decided to choose a hobby or interest which I narrowed down to reading or dogs ... reading won!
+
+```{r image, out.width="50%", fig.cap="*Books (!)*"}
+imgpath <- here("figures", "books1.jpg") # path to image of books
+knitr::include_graphics(imgpath) # include graphics
+```
+
+# Data origins
+The data set was retrieved from YouGov, URL:https://yougov.co.uk/topics/arts/trackers/how-many-books-brits-read.
+It contains information about the number of books read by British citizens over 12 points in time. The original excel spreadsheet contains information on season, location, gender, age, political party and Brexit voting choice. 
+
+```{r my_data}
+# accessing data set
+my_data <- read_excel(here("raw_data", "how-many-books-brits-read.xlsx"))
+head(my_data, 7)            # show first 7 rows of data
+```
+The variable names as dates can be confusing and also, the different information is on separate excel sheets making it harder to access. 
+
+## Research question
+My data considers the number of books read by **British** *adults* every 3 months, considering changes in reading habits over the year and how many books adults tend to read. The visualisations will be looking at both the differences in reading habits between males and females, and the changes over seasons. It could be hypothesised that there will be more reading over autumn/winter due to the colder weather and increase in indoor activities. 
+Hypotheses:
+1. There will be a difference in reading habits between males and females.
+2. There will be a difference in reading habits over the different seasons, with more reading occurring in autumn/winter.
+
+## Data preparation
+First, we prepare the data for the season visualisations.
+```{r df}
+# Rename columns to simpler names with better format.
+my_data <- rename(my_data,'Books_read'= 'Roughly how many, if any, books have you read over the last 3 months?') 
+my_data <- rename(my_data, 'Sum-19'='2019-07-04') 
+my_data <- rename(my_data, 'Aut-19'='2019-09-26', 'Win-19'='2019-12-26','Spr-20'='2020-03-26','Sum-20'='2020-06-18', 'Aut-20'='2020-09-24')
+my_data <- rename(my_data, 'Win-20'='2020-12-24','Spr-21'='2021-03-25','Sum-21'='2021-06-17','Aut-21'='2021-09-23','Win-21'='2021-12-23')
+my_data$Avg_per = rowMeans(my_data[c(2,3,4,5,6,7,8,9,10,12)])
+# Delete the unnecessary bottom 2 rows. Row 10 has also been eliminated as assigning a numerical value to 'Don't Know' would cause the data to be misleading.
+my_data <- my_data[-c(13, 12, 11, 10), ] 
+# Categories with non-numeric values e.g 'None' have been assigned numeric values. Also, categories with a range e.g. '6-8' have been assigned their mean value. 
+my_data[9, "Books_read"] <- "12"
+my_data[8, "Books_read"] <- "10"
+my_data[7, "Books_read"] <- "7"
+my_data[1, "Books_read"] <- "0"
+# Convert character data to numeric data
+my_data$"Books_read" <- as.numeric(my_data$"Books_read")
+#Calculate average for months
+my_data$AvgWin = rowMeans(my_data[c(4,8,12)]) 
+my_data$AvgSpr = rowMeans(my_data[c(5,9)]) 
+my_data$AvgSum = rowMeans(my_data[c(2,6,10)]) 
+my_data$AvgAut = rowMeans(my_data[c(3,7,11)]) 
+# show new processed data
+head(my_data)
+```
+Next, we prepare the data for the sex differences visualisation.
+```{r df3}
+# Accessing female data from excel sheet and renaming columns for clarity
+fd <- read_excel(here("raw_data", "how-many-books-brits-read.xlsx"),  sheet = 9)  
+fd <- rename(fd,'Books_read'= 'Roughly how many, if any, books have you read over the last 3 months?') 
+fd <- rename(fd, 'Sum-19'='2019-07-04') 
+fd <- rename(fd, 'Aut-19'='2019-09-26', 'Win-19'='2019-12-26','Spr-20'='2020-03-26','Sum-20'='2020-06-18', 'Aut-20'='2020-09-24')
+fd <- rename(fd, 'Win-20'='2020-12-24','Spr-21'='2021-03-25','Sum-21'='2021-06-17','Aut-21'='2021-09-23','Win-21'='2021-12-23')
+fd$Avg_per = rowMeans(fd[c(2,3,4,5,6,7,8,9,10,12)]) 
+# Delete the unnecessary bottom 2 rows. Row 10 has also been eliminated as assigning a numerical value to 'Don't Know' would cause the data to be misleading.
+fd <- fd[-c(13, 12, 11, 10),]
+# Categories with non-numeric values e.g 'None' have been assigned numeric values. Also, categories with a range e.g. '6-8' have been assigned their mean value. 
+fd[9, "Books_read"] <- "12"
+fd[8, "Books_read"] <- "10"
+fd[7, "Books_read"] <- "7"
+fd[1, "Books_read"] <- "0"
+# Convert character data to numeric data
+fd$"Books_read" <- as.numeric(fd$"Books_read")
+# Multiply Avg_per by 100 to give percentages
+fd$Avg_per <- fd$Avg_per * 100
+
+# Accessing and preparing male data
+md <- read_excel(here("raw_data", "how-many-books-brits-read.xlsx"),  sheet = 8)
+md <- rename(md,'Books_read'= 'Roughly how many, if any, books have you read over the last 3 months?') 
+md <- rename(md, 'Sum-19'='2019-07-04') 
+md <- rename(md, 'Aut-19'='2019-09-26', 'Win-19'='2019-12-26','Spr-20'='2020-03-26','Sum-20'='2020-06-18', 'Aut-20'='2020-09-24')
+md <- rename(md, 'Win-20'='2020-12-24','Spr-21'='2021-03-25','Sum-21'='2021-06-17','Aut-21'='2021-09-23','Win-21'='2021-12-23')
+md$Avg_per = rowMeans(md[c(2,3,4,5,6,7,8,9,10,12)]) 
+# Delete the unnecessary bottom 2 rows. Row 10 has also been eliminated as assigning a numerical value to 'Don't Know' would cause the data to be misleading.
+md <- md[-c(13,12,11,10), ] 
+# Categories with non-numeric values e.g 'None' have been assigned numeric values. Also, categories with a range e.g. '6-8' have been assigned their mean value. 
+md[9, "Books_read"] <- "12"
+md[8, "Books_read"] <- "10"
+md[7, "Books_read"] <- "7"
+md[1, "Books_read"] <- "0"
+# Convert character data to numeric data
+md$"Books_read" <- as.numeric(md$"Books_read")
+# Multiply Avg_per by 100 to give percentages
+md$Avg_per <- md$Avg_per * 100
+```
+# Visualisations
+### Visualisation 1 - Interactive line graph
+A line graph was chosen as the best way to visualise this part of the data. I wanted to push myself on this project so I tried to add an element of interactivity to this plot using the plotly package. This package allows the user to hover over data points and zoom into specific areas. 
+```{r gender}
+# Sex line plot
+sex <- ggplot() 
+sex <- sex + geom_line(data = md, aes(x = `Books_read`, y = `Avg_per`), color = "royalblue2", size = 1, arrow = arrow()) + 
+  geom_line(data = fd, aes(x = `Books_read`, y = `Avg_per`), color = "hotpink1", size = 1, arrow = arrow()) +
+  geom_point(data = md, aes(x = `Books_read`, y = `Avg_per`), color = "navyblue", size = 2) + 
+  geom_point(data = fd, aes(x = `Books_read`, y = `Avg_per`), color = "deeppink1", size = 2) + 
+  labs(subtitle= "Male = Blue, Female = Pink",  # labeling axis and titles of graph
+       x="Books read over 3 months", 
+       y=" Average percentage", 
+       title="Sex differences in number of books read", 
+       caption = "Source: YouGov") 
+sex_int <- ggplotly(sex) %>%  # make graph interactive
+  layout(title = list(text = paste0('Sex differences in number of books read',
+                                    '<br>',
+                                    '<sup>',
+                                    'Male = Blue, Female = Pink',
+                                    '</sup>')))
+ggsave(here("figures","sex_int.png")) # saving interactive plot
+```
+```{r g, echo = FALSE}
+sex_int
+```
+
+I then used the gganimate package to animate the graph by the number of books read. I found both these interactive graphs hard to make however was thrilled when they finally worked! If I had more time, I would try to combine the two interactive/animated graphs into one. I would also try and change the names for the interactive labels e.g. Avg_per -> Average percentage. 
+
+
+```{r g2}
+sex_anim <- sex + transition_reveal(`Books_read`) #animate graph
+```
+```{r g3}
+animate(sex_anim,renderer = gifski_renderer())
+anim_save(here("figures","sex_anim.gif")) # saving animated plot
+```
+  
+### Visualisation 2 - Donut plots
+
+Donut plots were chosen to display the different percentages as the number of books increased. I tried to choose colour palettes that reflected seasonal colours, although summer was harder as my first thought (yellow) was too similar to autumn. If I had more time, I would try to create a loop to create the plots so less code was repeated. I attempted this however ran out of time and expertise! I am very pleased with how these visualisations worked as I feel they are both clear and aesthetically pleasing. 
+
+```{r seasons}
+hsize <- 1 # adjusting size of donut hole
+
+# Winter
+ winter <- ggplot(my_data, aes(x = hsize, y = AvgWin, fill = as.factor(`Books_read`))) +
+  geom_col(color = "black") +   # border colour
+  scale_fill_brewer(palette = "GnBu") +  # seasonal colours
+  geom_text(aes(label = scales::percent(`AvgWin`, accuracy=0.1)), # adds percentage number to each slice
+            position = position_stack(vjust = 0.5), show.legend = FALSE) +
+  coord_polar(theta = "y", start = 0, direction = -1) + # controls starting point and direction of plot
+  xlim(c(0.2, hsize + 0.5)) +
+  labs(subtitle="Percentage of books read over winter",  # adding labels and titles
+       x="Percentage", 
+       title="Winter plot", 
+       caption = "Source: YouGov") +
+  theme(panel.background = element_rect(fill = "white"),  # removes background lines and distractions
+        panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank()) +
+  guides(fill = guide_legend(title = "Books read"))
+ggsave(here("figures","winter.png")) # saves figure
+
+# Similar code has been used for other seasons, with aesthetic changes made to reflect seasonal colours.
+# Spring
+spring <- ggplot(my_data, aes(x = hsize, y = AvgSpr, fill = as.factor(`Books_read`))) +
+  geom_col(color = "black") +
+  scale_fill_brewer(palette = "Greens") +
+  geom_text(aes(label = scales::percent(`AvgSpr`, accuracy=0.1)),
+            position = position_stack(vjust = 0.5), show.legend = FALSE) +
+  coord_polar(theta = "y", start = 0, direction = -1) +
+  xlim(c(0.2, hsize + 0.5)) +
+  labs(subtitle="Percentage of books read over spring", 
+       x="Percentage", 
+       title="Spring plot", 
+       caption = "Source: YouGov") +
+  theme(panel.background = element_rect(fill = "white"),
+        panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank()) +
+  guides(fill = guide_legend(title = "Books read"))
+ggsave(here("figures","spring.png"))
+
+# Summer
+summer <- ggplot(my_data, aes(x = hsize, y = AvgSum, fill = as.factor(`Books_read`))) +
+  geom_col(color = "black") +
+  scale_fill_brewer(palette = "RdPu") +
+  geom_text(aes(label = scales::percent(`AvgSum`, accuracy=0.1)),
+            position = position_stack(vjust = 0.5), show.legend = FALSE) +
+  coord_polar(theta = "y", start = 0, direction = -1) +
+  xlim(c(0.2, hsize + 0.5)) +
+  labs(subtitle="Percentage of books read over summer", 
+       x="Percentage", 
+       title="Summer plot", 
+       caption = "Source: YouGov") +
+  theme(panel.background = element_rect(fill = "white"),
+        panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank()) +
+  guides(fill = guide_legend(title = "Books read"))
+ggsave(here("figures","summer.png"))
+
+# Autumn
+autumn <- ggplot(my_data, aes(x = hsize, y = AvgAut, fill = as.factor(`Books_read`))) +
+  geom_col(color = "black") +
+  scale_fill_brewer(palette = "YlOrRd") +
+  geom_text(aes(label = scales::percent(`AvgAut`, accuracy=0.1)),
+            position = position_stack(vjust = 0.5), show.legend = FALSE) +
+  coord_polar(theta = "y", start = 0, direction = -1) +
+  xlim(c(0.2, hsize + 0.5)) +
+  labs(subtitle="Percentage of books read over autumn", 
+       x="Percentage", 
+       title="Autumn plot", 
+       caption = "Source: YouGov") +
+  theme(panel.background = element_rect(fill = "white"),
+        panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank()) +
+  guides(fill = guide_legend(title = "Books read"))
+ggsave(here("figures","autumn.png"))
+```
+``` {r plots, echo = FALSE, fig.show="hold", out.width="50%"}
+plot(winter) 
+plot(spring)
+plot(summer) 
+plot(autumn)
+``` 
+
+
+# Summary
+
+The first visualisation suggests that *females read more books than males*. The season plots were surprisingly very similar and therefore do not support the research hypothesis that there is more reading over the colder seasons. *Reading habits are unaffected by the seasons.*
+I had issues with reducing the amount of data into something that was simple enough to be visualised. Once I completed the visualisation, I found it frustrating that there was not as dramatic a difference as I had hoped. If I were to complete this project again, I would use either a completely different data set or choose a different variable e.g. location on a map. To further this analysis, I would look at age and location differences; it would also be interesting to consider the most popular type of book e.g. fantasy, romance, non-fiction etc. 
+
+This is the [link](https://github.com/RW2398/PSY6422_project.git) to the GitHub project repository.
