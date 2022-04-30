@@ -1,0 +1,6 @@
+CODEBOOK
+Data taken from: https://yougov.co.uk/topics/arts/trackers/how-many-books-brits-read, collected by YouGov
+
+Books_read -> the number of books read by a British adult individual over a 3-month period
+
+Season-year e.g. Sum-19 -> the percentage of each number of books read for that 3-month period
