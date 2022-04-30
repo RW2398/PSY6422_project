@@ -1,0 +1,9 @@
+CODEBOOK
+
+Data taken from: https://yougov.co.uk/topics/arts/trackers/how-many-books-brits-read, collected by YouGov
+
+Roughly how many, if any, books have you read over the last 3 months? -> the number of books read by a British adult individual over a 3-month period
+
+Date (YYYY-MM-DD) e.g. 2019-07-04 -> the percentage of each number of books read for that seasonal period
+
+The excel spreadsheet contains information on season, location, sex, age, political party and Brexit voting choice.
